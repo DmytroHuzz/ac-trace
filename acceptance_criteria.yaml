@@ -1,0 +1,21 @@
+project_root: .
+source_paths:
+  - demo_api
+test_paths:
+  - tests
+acceptance_criteria:
+  - id: AC-1
+    title: VIP discount at threshold
+    description: VIP customers with a subtotal of at least 100 receive a 10% discount.
+
+  - id: AC-2
+    title: Shipping fee by speed
+    description: Expedited shipping costs 15.0 and standard shipping costs 5.0.
+
+  - id: AC-3
+    title: Quote API returns a cost breakdown
+    description: POST /quote returns subtotal, discount, shipping, and total.
+
+  - id: AC-4
+    title: Health endpoint reports service status
+    description: 'GET /health returns {"status": "ok"}.'

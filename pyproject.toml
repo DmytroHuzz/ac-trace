@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ac-trace"
+version = "0.1.0"
+description = "Acceptance-criteria traceability and mutation-style test checks"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "coverage>=7.4,<8.0",
+  "Flask>=3.0,<4.0",
+  "PyYAML>=6.0,<7.0",
+  "pytest>=8.0,<9.0",
+]
+
+[project.scripts]
+ac-trace = "ac_trace.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

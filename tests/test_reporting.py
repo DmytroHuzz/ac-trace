@@ -1,0 +1,51 @@
+from pathlib import Path
+
+from ac_trace.manifest import load_manifest
+from ac_trace.mutator import MutationReport
+from ac_trace.reporting import render_report
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_render_markdown_report_includes_summary_and_mutations():
+    manifest = load_manifest(PROJECT_ROOT / "traceability.yaml")
+    mutation_reports = [
+        MutationReport(
+            criterion_id="AC-1",
+            code_path="demo_api/services/pricing.py",
+            symbol="calculate_discount",
+            mutation="constant 100 -> 101",
+            status="killed",
+            selectors=["tests/test_pricing.py::test_vip_discount_applies_at_threshold"],
+            pytest_output="",
+        )
+    ]
+
+    report = render_report(
+        manifest,
+        format="markdown",
+        validation_errors=[],
+        mutation_reports=mutation_reports,
+    )
+
+    assert "# AC Trace Report" in report
+    assert "AC-1: VIP discount at threshold" in report
+    assert "Mutations killed: 1" in report
+    assert "`demo_api/services/pricing.py::calculate_discount`: killed" in report
+
+
+def test_render_html_report_includes_sections():
+    manifest = load_manifest(PROJECT_ROOT / "traceability.yaml")
+
+    report = render_report(
+        manifest,
+        format="html",
+        validation_errors=[],
+        mutation_reports=[],
+    )
+
+    assert "<!doctype html>" in report
+    assert "AC Trace Report" in report
+    assert "VIP discount at threshold" in report
+    assert "<table>" in report

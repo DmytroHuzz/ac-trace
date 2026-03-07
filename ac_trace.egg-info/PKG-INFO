@@ -1,0 +1,98 @@
+Metadata-Version: 2.4
+Name: ac-trace
+Version: 0.1.0
+Summary: Acceptance-criteria traceability and mutation-style test checks
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: Flask<4.0,>=3.0
+Requires-Dist: PyYAML<7.0,>=6.0
+Requires-Dist: pytest<9.0,>=8.0
+
+# AC Trace
+
+`ac-trace` is a small proof of concept for recovering ownership of AI-generated code.
+
+It makes three things explicit:
+
+1. Acceptance criteria
+2. The code that implements each criterion
+3. The tests that are supposed to protect that implementation
+
+The manifest is stored as YAML, and the CLI can:
+
+- show an overview of AC -> code -> tests
+- validate that the mapped files and symbols exist
+- run only the tests linked to a specific AC
+- mutate mapped code and verify that the mapped tests fail
+
+## Why this shape
+
+This is intentionally narrow. The demo supports Python symbols and pytest tests so the core workflow is tangible:
+
+- define traceability explicitly
+- run the right tests for a requirement
+- challenge those tests with mutation-style changes
+
+For a production version, the next step would be parser adapters per language and smarter mutation operators per stack.
+
+## Demo domain
+
+The demo API is a tiny quote service with these ACs:
+
+- `AC-1`: VIP customers with subtotal `>= 100` receive a 10% discount
+- `AC-2`: Expedited shipping costs `15`, standard shipping costs `5`
+- `AC-3`: `POST /quote` returns subtotal, discount, shipping, and total
+- `AC-4`: `GET /health` returns `{"status": "ok"}`
+
+## Quick start
+
+Create a virtual environment and install the package:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -e .
+```
+
+Inspect the traceability map:
+
+```bash
+python3 -m ac_trace overview traceability.yaml
+```
+
+Validate that all references exist:
+
+```bash
+python3 -m ac_trace validate traceability.yaml
+```
+
+Run tests for one AC:
+
+```bash
+python3 -m ac_trace test traceability.yaml --ac AC-1
+```
+
+Run the mutation-style test check:
+
+```bash
+python3 -m ac_trace mutation-check traceability.yaml
+```
+
+## Manifest shape
+
+```yaml
+project_root: .
+acceptance_criteria:
+  - id: AC-1
+    title: Example criterion
+    description: Short business rule
+    code:
+      - path: app/service.py
+        symbol: calculate_value
+    tests:
+      - path: tests/test_service.py
+        cases:
+          - test_calculate_value
+```
+
+`symbol` is the important field for the current prototype. `lines` can also be declared for documentation, but symbol-based traceability is what the validator and mutator use.
