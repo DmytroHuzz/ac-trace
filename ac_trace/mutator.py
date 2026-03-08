@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ac_trace.manifest import TraceManifest
-from ac_trace.test_runner import run_pytest, selectors_for_criterion
+from ac_trace.test_runner import PytestCaseResult, run_pytest, selectors_for_criterion
 
 
 COMPARE_MUTATIONS = {
@@ -24,6 +24,8 @@ BINOP_MUTATIONS = {
     ast.Mult: ast.Div,
 }
 
+FAILED_TEST_STATUSES = {"failed", "error"}
+
 
 @dataclass(frozen=True)
 class MutationReport:
@@ -33,6 +35,7 @@ class MutationReport:
     mutation: str
     status: str
     selectors: list[str]
+    test_results: list[PytestCaseResult]
     pytest_output: str
 
 
@@ -154,13 +157,17 @@ def run_mutation_check(manifest: TraceManifest, ac_ids: list[str] | None = None)
                             mutation="no supported mutation found",
                             status="skipped",
                             selectors=selectors,
+                            test_results=[],
                             pytest_output="",
                         )
                     )
                     continue
 
                 result = run_pytest(manifest.project_root, selectors)
-                status = "killed" if result.returncode != 0 else "survived"
+                killed = any(
+                    case.status in FAILED_TEST_STATUSES for case in result.cases
+                )
+                status = "killed" if killed else "unkilled"
                 reports.append(
                     MutationReport(
                         criterion_id=criterion.id,
@@ -169,6 +176,7 @@ def run_mutation_check(manifest: TraceManifest, ac_ids: list[str] | None = None)
                         mutation=mutation,
                         status=status,
                         selectors=selectors,
+                        test_results=result.cases,
                         pytest_output=result.stdout + result.stderr,
                     )
                 )

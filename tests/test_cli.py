@@ -18,13 +18,12 @@ def test_cmd_manifest_validates_then_prints_overview(capsys):
     assert "AC-2: Shipping fee by speed" not in captured.out
 
 
-def test_cmd_run_writes_yaml_report(tmp_path, capsys):
+def test_cmd_run_writes_yaml_report_with_killed_summary(tmp_path, capsys):
     output_path = tmp_path / "run-report.yaml"
 
     exit_code = cmd_run(
         str(PROJECT_ROOT / "traceability.yaml"),
-        ["AC-1"],
-        False,
+        ["AC-3"],
         "yaml",
         str(output_path),
     )
@@ -34,6 +33,28 @@ def test_cmd_run_writes_yaml_report(tmp_path, capsys):
     assert exit_code == 0
     assert "Wrote yaml report to" in captured.out
     assert payload["summary"]["validation"] == "passed"
-    assert payload["summary"]["tests"] == "passed"
-    assert payload["summary"]["mutation_check"] == "disabled"
-    assert payload["acceptance_criteria"][0]["id"] == "AC-1"
+    assert payload["summary"]["mutations"]["killed"] == 3
+    assert payload["acceptance_criteria"][0]["id"] == "AC-3"
+    assert payload["acceptance_criteria"][0]["summary"]["status"] == "killed"
+
+
+def test_cmd_run_marks_ac_unkilled_when_a_test_never_fails(tmp_path, capsys):
+    output_path = tmp_path / "run-report.yaml"
+
+    exit_code = cmd_run(
+        str(PROJECT_ROOT / "traceability.yaml"),
+        ["AC-2"],
+        "yaml",
+        str(output_path),
+    )
+    captured = capsys.readouterr()
+    payload = yaml.safe_load(output_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert "test_standard_shipping_fee2 -> passed" in captured.out
+    assert payload["acceptance_criteria"][0]["summary"]["status"] == "unkilled"
+    assert payload["acceptance_criteria"][0]["summary"]["tests_never_failed"] == 2
+    assert payload["acceptance_criteria"][0]["summary"]["never_failed_tests"] == [
+        "tests/test_pricing.py::test_standard_shipping_fee",
+        "tests/test_pricing.py::test_standard_shipping_fee2"
+    ]

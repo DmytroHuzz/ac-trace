@@ -6,9 +6,9 @@ from pathlib import Path
 from ac_trace.catalog import CatalogError, load_catalog
 from ac_trace.inference import InferenceError, infer_manifest
 from ac_trace.manifest import ManifestError, dump_manifest, load_manifest
-from ac_trace.mutator import run_mutation_check
+from ac_trace.mutator import FAILED_TEST_STATUSES, run_mutation_check
 from ac_trace.reporting import render_report
-from ac_trace.test_runner import run_tests_for_manifest
+from ac_trace.test_runner import selectors_for_criterion
 from ac_trace.validator import validate_manifest
 
 
@@ -32,12 +32,6 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("manifest", help="Path to traceability YAML file")
     run.add_argument(
         "--ac", action="append", dest="ac_ids", help="Acceptance criterion id"
-    )
-    run.add_argument(
-        "--mutation",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Run mutation checks for mapped code",
     )
     run.add_argument(
         "--report",
@@ -79,17 +73,18 @@ def _print_validation_errors(errors: list[str]) -> None:
 
 def _print_mutation_reports(reports) -> None:
     for report in reports:
-        selectors = ", ".join(report.selectors)
         print(
             f"{report.criterion_id} | {report.code_path}::{report.symbol} | "
             f"{report.mutation} | {report.status}"
         )
-        print(f"  selectors: {selectors}")
-        if report.status in {"survived"}:
-            if report.pytest_output:
-                print("  pytest output:")
-                for line in report.pytest_output.strip().splitlines():
-                    print(f"    {line}")
+        for test_result in report.test_results:
+            print(f"  {test_result.selector} -> {test_result.status}")
+            if test_result.message:
+                print(f"    {test_result.message}")
+        if report.status in {"unkilled"} and report.pytest_output:
+            print("  pytest output:")
+            for line in report.pytest_output.strip().splitlines():
+                print(f"    {line}")
         elif report.status == "skipped":
             print("  pytest output: skipped because no supported mutation was found")
 
@@ -135,30 +130,18 @@ def cmd_infer(catalog_path: str, output: str | None) -> int:
 def cmd_run(
     manifest_path: str,
     ac_ids: list[str] | None,
-    mutation: bool,
     report_format: str,
     output: str | None,
 ) -> int:
     manifest = load_manifest(manifest_path).select(ac_ids)
     validation_errors = validate_manifest(manifest)
-    test_result = None
     mutation_reports = None
 
     if validation_errors:
         _print_validation_errors(validation_errors)
     else:
-        test_result = run_tests_for_manifest(manifest)
-        if test_result.stdout:
-            print(test_result.stdout, end="")
-        if test_result.stderr:
-            print(test_result.stderr, end="")
-
-        if mutation:
-            if test_result.returncode == 0:
-                mutation_reports = run_mutation_check(manifest)
-                _print_mutation_reports(mutation_reports)
-            else:
-                print("Skipping mutation check because mapped tests failed.")
+        mutation_reports = run_mutation_check(manifest)
+        _print_mutation_reports(mutation_reports)
 
     if report_format == "none" and output is not None:
         raise CliError("Cannot use --output when --report is 'none'")
@@ -169,20 +152,27 @@ def cmd_run(
             manifest,
             format=report_format,
             validation_errors=validation_errors,
-            test_result=test_result,
-            mutation_requested=mutation,
             mutation_reports=mutation_reports,
         )
         assert output_path is not None
         output_path.write_text(content, encoding="utf-8")
         print(f"Wrote {report_format} report to {output_path}")
 
-    if validation_errors or (test_result is not None and test_result.returncode != 0):
+    if validation_errors:
         return 1
-    if mutation_reports and any(
-        report.status == "survived" for report in mutation_reports
-    ):
-        return 1
+
+    assert mutation_reports is not None
+    for criterion in manifest.acceptance_criteria:
+        selectors = set(selectors_for_criterion(criterion))
+        failed_selectors = {
+            test_result.selector
+            for report in mutation_reports
+            if report.criterion_id == criterion.id
+            for test_result in report.test_results
+            if test_result.status in FAILED_TEST_STATUSES
+        }
+        if selectors.difference(failed_selectors):
+            return 1
     return 0
 
 
@@ -199,7 +189,6 @@ def main() -> int:
             return cmd_run(
                 args.manifest,
                 args.ac_ids,
-                args.mutation,
                 args.report,
                 args.output,
             )

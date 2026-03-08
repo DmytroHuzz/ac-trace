@@ -11,8 +11,7 @@ It makes three things explicit:
 The manifest is stored as YAML, and the CLI can:
 
 - validate a manifest and print its overview in one step
-- run mapped tests, optionally run mutation checks, and emit an HTML or YAML report in one step
-- run only the tests linked to a specific AC
+- run mutation checks for the mapped code and emit an HTML or YAML report in one step
 - mutate mapped code and verify that the mapped tests fail
 - infer a traceability manifest from Python tests annotated with AC ids
 - generate HTML or YAML execution reports for review and handoff
@@ -64,16 +63,16 @@ Validate the manifest and print its overview:
 python3 -m ac_trace manifest traceability.yaml
 ```
 
-Run tests for all ACs, run mutation checks, and write the default HTML report:
+Run mutation checks for all ACs and write the default HTML report:
 
 ```bash
 python3 -m ac_trace run traceability.yaml
 ```
 
-Run only one AC, skip mutation, and write a YAML report:
+Run only one AC and write a YAML report:
 
 ```bash
-python3 -m ac_trace run traceability.yaml --ac AC-1 --no-mutation --report yaml --output ac1-result.yaml
+python3 -m ac_trace run traceability.yaml --ac AC-1 --report yaml --output ac1-result.yaml
 ```
 
 Generate an HTML report from the inferred manifest:
@@ -121,11 +120,12 @@ This keeps the mapping recoverable without pretending that AC-to-code linkage ca
 `run`
 
 - validates the manifest first
-- runs the mapped pytest selectors
-- runs mutation checks by default; disable with `--no-mutation`
+- applies one mutation at a time to each mutable item in `code:`
+- runs all mapped tests from `tests:` against each mutation
 - writes an HTML report by default; use `--report yaml` or `--report none`
 - scopes to all ACs by default; use `--ac AC_ID` to narrow it
 - writes to `test_result_report.html` by default for HTML and `test_result_report.yaml` for YAML unless `--output` is provided
+- marks an AC as `unkilled` if any mapped test never fails across all mutations for that AC
 
 ## Manifest shape
 

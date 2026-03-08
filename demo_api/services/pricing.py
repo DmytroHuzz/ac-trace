@@ -2,8 +2,9 @@ from __future__ import annotations
 
 
 def calculate_discount(subtotal: float, is_vip: bool) -> float:
-    if is_vip and subtotal >= 100:
-        return round(subtotal * 0.10, 2)
+    if is_vip:
+        if subtotal >= 100:
+            return round(subtotal * 0.10, 2)
     return 0.0
 
 
