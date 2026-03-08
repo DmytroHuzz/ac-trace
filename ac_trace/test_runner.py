@@ -24,6 +24,9 @@ def selectors_for_criterion(criterion: AcceptanceCriterion) -> list[str]:
     return selectors
 
 
+SUBPROCESS_TIMEOUT = 300
+
+
 def run_pytest(project_root: Path, selectors: list[str]) -> PytestResult:
     command = [sys.executable, "-m", "pytest", *selectors]
     completed = subprocess.run(
@@ -32,6 +35,7 @@ def run_pytest(project_root: Path, selectors: list[str]) -> PytestResult:
         text=True,
         capture_output=True,
         check=False,
+        timeout=SUBPROCESS_TIMEOUT,
     )
     return PytestResult(
         selectors=selectors,
@@ -41,7 +45,9 @@ def run_pytest(project_root: Path, selectors: list[str]) -> PytestResult:
     )
 
 
-def run_tests_for_manifest(manifest: TraceManifest, ac_ids: list[str] | None = None) -> PytestResult:
+def run_tests_for_manifest(
+    manifest: TraceManifest, ac_ids: list[str] | None = None
+) -> PytestResult:
     selectors: list[str] = []
     seen: set[str] = set()
 

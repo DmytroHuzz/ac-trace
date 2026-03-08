@@ -74,17 +74,17 @@ def _parse_decorator_ac_ids(decorators: list[ast.expr]) -> list[str]:
         if not isinstance(decorator, ast.Call):
             continue
         for argument in decorator.args:
-            if isinstance(argument, ast.Constant) and isinstance(argument.value, str) and argument.value not in ids:
+            if (
+                isinstance(argument, ast.Constant)
+                and isinstance(argument.value, str)
+                and argument.value not in ids
+            ):
                 ids.append(argument.value)
     return ids
 
 
 def _merge_unique(items: list[str]) -> list[str]:
-    merged: list[str] = []
-    for item in items:
-        if item not in merged:
-            merged.append(item)
-    return merged
+    return list(dict.fromkeys(items))
 
 
 class SymbolCollector(ast.NodeVisitor):
@@ -150,8 +150,13 @@ def discover_pytest_cases(path: Path, project_root: Path) -> list[PythonTestCase
     cases: list[PythonTestCase] = []
 
     for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
-            ac_ids = _merge_unique(_parse_decorator_ac_ids(node.decorator_list) + _parse_docstring_ac_ids(node))
+        if isinstance(
+            node, (ast.FunctionDef, ast.AsyncFunctionDef)
+        ) and node.name.startswith("test_"):
+            ac_ids = _merge_unique(
+                _parse_decorator_ac_ids(node.decorator_list)
+                + _parse_docstring_ac_ids(node)
+            )
             cases.append(
                 PythonTestCase(
                     path=relative_path,
@@ -161,10 +166,19 @@ def discover_pytest_cases(path: Path, project_root: Path) -> list[PythonTestCase
                 )
             )
         elif isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
-            class_ac_ids = _merge_unique(_parse_decorator_ac_ids(node.decorator_list) + _parse_docstring_ac_ids(node))
+            class_ac_ids = _merge_unique(
+                _parse_decorator_ac_ids(node.decorator_list)
+                + _parse_docstring_ac_ids(node)
+            )
             for child in node.body:
-                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) and child.name.startswith("test_"):
-                    ac_ids = _merge_unique(class_ac_ids + _parse_decorator_ac_ids(child.decorator_list) + _parse_docstring_ac_ids(child))
+                if isinstance(
+                    child, (ast.FunctionDef, ast.AsyncFunctionDef)
+                ) and child.name.startswith("test_"):
+                    ac_ids = _merge_unique(
+                        class_ac_ids
+                        + _parse_decorator_ac_ids(child.decorator_list)
+                        + _parse_docstring_ac_ids(child)
+                    )
                     case_id = f"{node.name}::{child.name}"
                     cases.append(
                         PythonTestCase(

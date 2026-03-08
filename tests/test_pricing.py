@@ -1,5 +1,9 @@
 from ac_trace.annotations import ac
-from demo_api.services.pricing import build_quote, calculate_discount, calculate_shipping
+from demo_api.services.pricing import (
+    build_quote,
+    calculate_discount,
+    calculate_shipping,
+)
 
 
 @ac("AC-1")
@@ -20,6 +24,11 @@ def test_expedited_shipping_fee():
 @ac("AC-2")
 def test_standard_shipping_fee():
     assert calculate_shipping(False) == 5.0
+
+
+@ac("AC-2")
+def test_standard_shipping_fee2():
+    return True
 
 
 @ac("AC-3")

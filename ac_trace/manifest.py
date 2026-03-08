@@ -47,12 +47,18 @@ class TraceManifest:
     project_root: Path
     acceptance_criteria: list[AcceptanceCriterion]
 
-    def find_criteria(self, ids: Optional[Iterable[str]] = None) -> list[AcceptanceCriterion]:
+    def find_criteria(
+        self, ids: Optional[Iterable[str]] = None
+    ) -> list[AcceptanceCriterion]:
         if ids is None:
             return self.acceptance_criteria
 
         wanted = set(ids)
-        selected = [criterion for criterion in self.acceptance_criteria if criterion.id in wanted]
+        selected = [
+            criterion
+            for criterion in self.acceptance_criteria
+            if criterion.id in wanted
+        ]
         missing = wanted.difference({criterion.id for criterion in selected})
         if missing:
             missing_text = ", ".join(sorted(missing))
@@ -77,12 +83,16 @@ def _load_code_refs(raw_refs: object, criterion_id: str) -> list[CodeRef]:
             raise ManifestError(f"{criterion_id}: code entry must be an object")
         path = raw_ref.get("path")
         if not isinstance(path, str) or not path:
-            raise ManifestError(f"{criterion_id}: code entry requires a non-empty 'path'")
+            raise ManifestError(
+                f"{criterion_id}: code entry requires a non-empty 'path'"
+            )
         symbol = raw_ref.get("symbol")
         lines = raw_ref.get("lines")
         mutate = raw_ref.get("mutate", True)
         if not isinstance(mutate, bool):
-            raise ManifestError(f"{criterion_id}: code entry field 'mutate' must be true or false")
+            raise ManifestError(
+                f"{criterion_id}: code entry field 'mutate' must be true or false"
+            )
         refs.append(
             CodeRef(
                 path=path,
@@ -105,9 +115,17 @@ def _load_test_refs(raw_refs: object, criterion_id: str) -> list[TestRef]:
         path = raw_ref.get("path")
         cases = raw_ref.get("cases")
         if not isinstance(path, str) or not path:
-            raise ManifestError(f"{criterion_id}: test entry requires a non-empty 'path'")
-        if not isinstance(cases, list) or not cases or not all(isinstance(case, str) and case for case in cases):
-            raise ManifestError(f"{criterion_id}: test entry requires a non-empty 'cases' list")
+            raise ManifestError(
+                f"{criterion_id}: test entry requires a non-empty 'path'"
+            )
+        if (
+            not isinstance(cases, list)
+            or not cases
+            or not all(isinstance(case, str) and case for case in cases)
+        ):
+            raise ManifestError(
+                f"{criterion_id}: test entry requires a non-empty 'cases' list"
+            )
         refs.append(TestRef(path=path, cases=list(cases)))
     return refs
 
@@ -163,16 +181,13 @@ def load_manifest(path: str | Path) -> TraceManifest:
     )
 
 
-def manifest_to_dict(manifest: TraceManifest, *, relative_to: Path | None = None) -> dict[str, object]:
+def manifest_to_dict(
+    manifest: TraceManifest, *, relative_to: Path | None = None
+) -> dict[str, object]:
     base_path = relative_to or manifest.manifest_path.parent
-    project_root = os.path.relpath(manifest.project_root, base_path)
-    if project_root == ".":
-        project_root_value = "."
-    else:
-        project_root_value = project_root
 
     return {
-        "project_root": project_root_value,
+        "project_root": os.path.relpath(manifest.project_root, base_path),
         "acceptance_criteria": [
             {
                 "id": criterion.id,

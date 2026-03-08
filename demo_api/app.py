@@ -14,11 +14,18 @@ def create_app() -> Flask:
 
     @app.post("/quote")
     def quote():
-        payload = request.get_json(force=True) or {}
-        subtotal = float(payload.get("subtotal", 0))
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return jsonify({"error": "request body must be a JSON object"}), 400
+        try:
+            subtotal = float(payload.get("subtotal", 0))
+        except (TypeError, ValueError):
+            return jsonify({"error": "'subtotal' must be a number"}), 400
         is_vip = bool(payload.get("is_vip", False))
         expedited = bool(payload.get("expedited", False))
-        return jsonify(build_quote(subtotal=subtotal, is_vip=is_vip, expedited=expedited))
+        return jsonify(
+            build_quote(subtotal=subtotal, is_vip=is_vip, expedited=expedited)
+        )
 
     return app
 

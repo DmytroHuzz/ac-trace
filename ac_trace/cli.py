@@ -13,34 +13,50 @@ from ac_trace.validator import validate_manifest
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Acceptance criteria traceability demo")
+    parser = argparse.ArgumentParser(
+        description="Acceptance criteria traceability demo"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     overview = subparsers.add_parser("overview")
     overview.add_argument("manifest", help="Path to traceability YAML file")
-    overview.add_argument("--ac", action="append", dest="ac_ids", help="Acceptance criterion id")
+    overview.add_argument(
+        "--ac", action="append", dest="ac_ids", help="Acceptance criterion id"
+    )
 
     validate = subparsers.add_parser("validate")
     validate.add_argument("manifest", help="Path to traceability YAML file")
 
     test = subparsers.add_parser("test")
     test.add_argument("manifest", help="Path to traceability YAML file")
-    test.add_argument("--ac", action="append", dest="ac_ids", help="Acceptance criterion id")
+    test.add_argument(
+        "--ac", action="append", dest="ac_ids", help="Acceptance criterion id"
+    )
 
     mutation_check = subparsers.add_parser("mutation-check")
     mutation_check.add_argument("manifest", help="Path to traceability YAML file")
-    mutation_check.add_argument("--ac", action="append", dest="ac_ids", help="Acceptance criterion id")
+    mutation_check.add_argument(
+        "--ac", action="append", dest="ac_ids", help="Acceptance criterion id"
+    )
 
     infer = subparsers.add_parser("infer")
     infer.add_argument("catalog", help="Path to acceptance-criteria catalog YAML file")
-    infer.add_argument("--output", help="Path to write the inferred traceability manifest")
+    infer.add_argument(
+        "--output", help="Path to write the inferred traceability manifest"
+    )
 
     report = subparsers.add_parser("report")
     report.add_argument("manifest", help="Path to traceability YAML file")
-    report.add_argument("--ac", action="append", dest="ac_ids", help="Acceptance criterion id")
+    report.add_argument(
+        "--ac", action="append", dest="ac_ids", help="Acceptance criterion id"
+    )
     report.add_argument("--format", choices=["markdown", "html"], default="markdown")
     report.add_argument("--output", help="Path to write the generated report")
-    report.add_argument("--with-mutation-check", action="store_true", help="Include mutation-check results")
+    report.add_argument(
+        "--with-mutation-check",
+        action="store_true",
+        help="Include mutation-check results",
+    )
 
     return parser
 
@@ -132,7 +148,7 @@ def cmd_report(
 ) -> int:
     manifest = load_manifest(manifest_path).select(ac_ids)
     validation_errors = validate_manifest(manifest)
-    mutation_reports = [] if with_mutation_check and not validation_errors else None
+    mutation_reports = None
     if with_mutation_check and not validation_errors:
         mutation_reports = run_mutation_check(manifest)
 
@@ -152,7 +168,9 @@ def cmd_report(
 
     if validation_errors:
         return 1
-    if mutation_reports and any(report.status == "survived" for report in mutation_reports):
+    if mutation_reports and any(
+        report.status == "survived" for report in mutation_reports
+    ):
         return 1
     return 0
 
