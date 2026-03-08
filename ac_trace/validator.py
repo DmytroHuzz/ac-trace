@@ -28,12 +28,23 @@ def validate_manifest(manifest: TraceManifest) -> list[str]:
             if not code_path.exists():
                 errors.append(f"{criterion.id}: missing code file {code_ref.path}")
                 continue
-            if code_ref.symbol and resolve_python_symbol(code_path, code_ref.symbol) is None:
-                errors.append(f"{criterion.id}: symbol '{code_ref.symbol}' not found in {code_ref.path}")
+            resolved_symbol = None
+            if code_ref.symbol:
+                resolved_symbol = resolve_python_symbol(code_path, code_ref.symbol)
+                if resolved_symbol is None:
+                    errors.append(f"{criterion.id}: symbol '{code_ref.symbol}' not found in {code_ref.path}")
             if code_ref.lines:
                 line_error = _validate_lines(code_path, code_ref.lines)
                 if line_error:
                     errors.append(f"{criterion.id}: {line_error}")
+                elif resolved_symbol is not None:
+                    start_text, _, end_text = code_ref.lines.partition("-")
+                    start, end = int(start_text), int(end_text)
+                    if start < resolved_symbol.lineno or end > resolved_symbol.end_lineno:
+                        errors.append(
+                            f"{criterion.id}: line range '{code_ref.lines}' falls outside symbol "
+                            f"'{code_ref.symbol}' in {code_ref.path}"
+                        )
 
         for test_ref in criterion.tests:
             test_path = test_ref.resolved_path(manifest.project_root)

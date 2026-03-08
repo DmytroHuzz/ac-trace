@@ -120,8 +120,9 @@ This keeps the mapping recoverable without pretending that AC-to-code linkage ca
 `run`
 
 - validates the manifest first
-- applies one mutation at a time to each mutable item in `code:`
-- runs all mapped tests from `tests:` against each mutation
+- discovers every supported mutation site inside each mutable `code:` item
+- if `lines` is defined, only mutation sites fully inside that line range are considered
+- applies one mutation site at a time and runs all mapped tests from `tests:` for each mutation
 - writes an HTML report by default; use `--report yaml` or `--report none`
 - scopes to all ACs by default; use `--ac AC_ID` to narrow it
 - writes to `test_result_report.html` by default for HTML and `test_result_report.yaml` for YAML unless `--output` is provided
@@ -145,4 +146,4 @@ acceptance_criteria:
           - test_calculate_value
 ```
 
-`symbol` is the important field for the current prototype. `lines` can also be declared for documentation, but symbol-based traceability is what the validator and mutator use. Set `mutate: false` for traced files that are mostly framework glue and should not participate in mutation checks.
+`symbol` defines the Python function or method to trace. If `lines` is also present, mutation is limited to the intersection of that symbol and the declared line range. When multiple mutation sites exist in that scoped region, the runner executes them all as separate mutation runs. Set `mutate: false` for traced files that are mostly framework glue and should not participate in mutation checks.

@@ -6,11 +6,6 @@ acceptance_criteria:
     code:
       - path: demo_api/services/pricing.py
         symbol: calculate_discount
-        lines: 4-5
-        mutate: true
-      - path: demo_api/services/pricing.py
-        symbol: calculate_discount
-        lines: 6-7
         mutate: true
     tests:
       - path: tests/test_pricing.py
@@ -23,7 +18,7 @@ acceptance_criteria:
     code:
       - path: demo_api/services/pricing.py
         symbol: calculate_shipping
-        lines: 10-11
+        lines: 11-12
         mutate: true
     tests:
       - path: tests/test_pricing.py
@@ -41,7 +36,7 @@ acceptance_criteria:
         mutate: false
       - path: demo_api/services/pricing.py
         symbol: build_quote
-        lines: 14-23
+        lines: 15-24
         mutate: true
       - path: demo_api/services/pricing.py
         symbol: calculate_discount
@@ -49,7 +44,7 @@ acceptance_criteria:
         mutate: true
       - path: demo_api/services/pricing.py
         symbol: calculate_shipping
-        lines: 10-11
+        lines: 11-12
         mutate: true
     tests:
       - path: tests/test_api.py

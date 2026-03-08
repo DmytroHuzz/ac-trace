@@ -33,7 +33,8 @@ def test_cmd_run_writes_yaml_report_with_killed_summary(tmp_path, capsys):
     assert exit_code == 0
     assert "Wrote yaml report to" in captured.out
     assert payload["summary"]["validation"] == "passed"
-    assert payload["summary"]["mutations"]["killed"] == 3
+    assert payload["summary"]["mutations"]["killed"] == 9
+    assert payload["summary"]["mutations"]["unkilled"] == 2
     assert payload["acceptance_criteria"][0]["id"] == "AC-3"
     assert payload["acceptance_criteria"][0]["summary"]["status"] == "killed"
 
@@ -53,8 +54,8 @@ def test_cmd_run_marks_ac_unkilled_when_a_test_never_fails(tmp_path, capsys):
     assert exit_code == 1
     assert "test_standard_shipping_fee2 -> passed" in captured.out
     assert payload["acceptance_criteria"][0]["summary"]["status"] == "unkilled"
-    assert payload["acceptance_criteria"][0]["summary"]["tests_never_failed"] == 2
+    assert payload["summary"]["mutations"]["killed"] == 2
+    assert payload["acceptance_criteria"][0]["summary"]["tests_never_failed"] == 1
     assert payload["acceptance_criteria"][0]["summary"]["never_failed_tests"] == [
-        "tests/test_pricing.py::test_standard_shipping_fee",
         "tests/test_pricing.py::test_standard_shipping_fee2"
     ]
