@@ -1,0 +1,68 @@
+project_root: .
+acceptance_criteria:
+- id: AC-1
+  title: VIP discount at threshold
+  description: VIP customers with a subtotal of at least 100 receive a 10% discount.
+  code:
+  - path: demo_api/services/pricing.py
+    symbol: calculate_discount
+    lines: 4-8
+    mutate: true
+  tests:
+  - path: tests/test_pricing.py
+    cases:
+    - test_non_vip_customer_gets_no_discount
+    - test_vip_discount_applies_at_threshold
+- id: AC-2
+  title: Shipping fee by speed
+  description: Expedited shipping costs 15.0 and standard shipping costs 5.0.
+  code:
+  - path: demo_api/services/pricing.py
+    symbol: calculate_shipping
+    lines: 11-12
+    mutate: true
+  tests:
+  - path: tests/test_pricing.py
+    cases:
+    - test_expedited_shipping_fee
+    - test_standard_shipping_fee
+    - test_standard_shipping_fee_never_fails
+- id: AC-3
+  title: Quote API returns a cost breakdown
+  description: POST /quote returns subtotal, discount, shipping, and total.
+  code:
+  - path: demo_api/app.py
+    symbol: create_app.quote
+    lines: 16-28
+    mutate: false
+  - path: demo_api/services/pricing.py
+    symbol: build_quote
+    lines: 15-24
+    mutate: true
+  - path: demo_api/services/pricing.py
+    symbol: calculate_discount
+    lines: 4-8
+    mutate: true
+  - path: demo_api/services/pricing.py
+    symbol: calculate_shipping
+    lines: 11-12
+    mutate: true
+  tests:
+  - path: tests/test_api.py
+    cases:
+    - test_quote_endpoint_returns_breakdown
+  - path: tests/test_pricing.py
+    cases:
+    - test_build_quote_combines_discount_and_shipping
+- id: AC-4
+  title: Health endpoint reports service status
+  description: 'GET /health returns {"status": "ok"}.'
+  code:
+  - path: demo_api/app.py
+    symbol: create_app.health
+    lines: 12-13
+    mutate: false
+  tests:
+  - path: tests/test_api.py
+    cases:
+    - test_healthcheck

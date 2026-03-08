@@ -1,0 +1,192 @@
+generated_at: '2026-03-08 18:23:32Z'
+summary:
+  criteria: 1
+  code_references: 1
+  test_files: 1
+  test_cases: 2
+  validation: passed
+  mutations:
+    killed: 5
+    unkilled: 1
+  criteria_by_status:
+    killed: 1
+    unkilled: 0
+    not_run: 0
+validation_errors: []
+acceptance_criteria:
+- id: AC-1
+  title: VIP discount at threshold
+  description: VIP customers with a subtotal of at least 100 receive a 10% discount.
+  summary:
+    status: killed
+    total_tests: 2
+    total_mutations: 6
+    killed_mutations: 5
+    unkilled_mutations: 1
+    skipped_mutations: 0
+    tests_failed_at_least_once: 2
+    tests_never_failed: 0
+    never_failed_tests: []
+  code:
+  - path: demo_api/services/pricing.py
+    symbol: calculate_discount
+    lines: null
+    mutate: true
+  tests:
+  - path: tests/test_pricing.py
+    cases:
+    - test_non_vip_customer_gets_no_discount
+    - test_vip_discount_applies_at_threshold
+  mutations:
+  - code_path: demo_api/services/pricing.py
+    symbol: calculate_discount
+    mutation: line 5:18 bool True -> False
+    status: killed
+    test_results:
+    - selector: tests/test_pricing.py::test_non_vip_customer_gets_no_discount
+      status: failed
+      message: "assert 15.0 == 0.0\n +  where 15.0 = calculate_discount(150, False)"
+    - selector: tests/test_pricing.py::test_vip_discount_applies_at_threshold
+      status: failed
+      message: "assert 0.0 == 10.0\n +  where 0.0 = calculate_discount(100, True)"
+    pytest_output: "============================= test session starts ==============================\n\
+      platform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0\nrootdir: /Users/dmytrohuz/Code/testurtion\n\
+      configfile: pyproject.toml\ncollected 2 items\n\ntests/test_pricing.py FF  \
+      \                                               [100%]\n\n===================================\
+      \ FAILURES ===================================\n____________________ test_non_vip_customer_gets_no_discount\
+      \ ____________________\n\n    @ac(\"AC-1\")\n    def test_non_vip_customer_gets_no_discount():\n\
+      >       assert calculate_discount(150, False) == 0.0\nE       assert 15.0 ==\
+      \ 0.0\nE        +  where 15.0 = calculate_discount(150, False)\n\ntests/test_pricing.py:16:\
+      \ AssertionError\n____________________ test_vip_discount_applies_at_threshold\
+      \ ____________________\n\n    @ac(\"AC-1\")\n    def test_vip_discount_applies_at_threshold():\n\
+      >       assert calculate_discount(100, True) == 10.0\nE       assert 0.0 ==\
+      \ 10.0\nE        +  where 0.0 = calculate_discount(100, True)\n\ntests/test_pricing.py:11:\
+      \ AssertionError\n- generated xml file: /var/folders/f0/ywnq5q_x0qd3mvq36tb_1j5c0000gq/T/tmp9s84_xah/pytest-results.xml\
+      \ -\n=========================== short test summary info ============================\n\
+      FAILED tests/test_pricing.py::test_non_vip_customer_gets_no_discount - assert...\n\
+      FAILED tests/test_pricing.py::test_vip_discount_applies_at_threshold - assert...\n\
+      ============================== 2 failed in 0.03s ===============================\n"
+  - code_path: demo_api/services/pricing.py
+    symbol: calculate_discount
+    mutation: line 6:24 constant 100 -> 101
+    status: killed
+    test_results:
+    - selector: tests/test_pricing.py::test_non_vip_customer_gets_no_discount
+      status: passed
+      message: ''
+    - selector: tests/test_pricing.py::test_vip_discount_applies_at_threshold
+      status: failed
+      message: "assert 0.0 == 10.0\n +  where 0.0 = calculate_discount(100, True)"
+    pytest_output: "============================= test session starts ==============================\n\
+      platform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0\nrootdir: /Users/dmytrohuz/Code/testurtion\n\
+      configfile: pyproject.toml\ncollected 2 items\n\ntests/test_pricing.py .F  \
+      \                                               [100%]\n\n===================================\
+      \ FAILURES ===================================\n____________________ test_vip_discount_applies_at_threshold\
+      \ ____________________\n\n    @ac(\"AC-1\")\n    def test_vip_discount_applies_at_threshold():\n\
+      >       assert calculate_discount(100, True) == 10.0\nE       assert 0.0 ==\
+      \ 10.0\nE        +  where 0.0 = calculate_discount(100, True)\n\ntests/test_pricing.py:11:\
+      \ AssertionError\n- generated xml file: /var/folders/f0/ywnq5q_x0qd3mvq36tb_1j5c0000gq/T/tmpzjbouf__/pytest-results.xml\
+      \ -\n=========================== short test summary info ============================\n\
+      FAILED tests/test_pricing.py::test_vip_discount_applies_at_threshold - assert...\n\
+      ========================= 1 failed, 1 passed in 0.02s ==========================\n"
+  - code_path: demo_api/services/pricing.py
+    symbol: calculate_discount
+    mutation: line 6:12 GtE -> Gt
+    status: killed
+    test_results:
+    - selector: tests/test_pricing.py::test_non_vip_customer_gets_no_discount
+      status: passed
+      message: ''
+    - selector: tests/test_pricing.py::test_vip_discount_applies_at_threshold
+      status: failed
+      message: "assert 0.0 == 10.0\n +  where 0.0 = calculate_discount(100, True)"
+    pytest_output: "============================= test session starts ==============================\n\
+      platform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0\nrootdir: /Users/dmytrohuz/Code/testurtion\n\
+      configfile: pyproject.toml\ncollected 2 items\n\ntests/test_pricing.py .F  \
+      \                                               [100%]\n\n===================================\
+      \ FAILURES ===================================\n____________________ test_vip_discount_applies_at_threshold\
+      \ ____________________\n\n    @ac(\"AC-1\")\n    def test_vip_discount_applies_at_threshold():\n\
+      >       assert calculate_discount(100, True) == 10.0\nE       assert 0.0 ==\
+      \ 10.0\nE        +  where 0.0 = calculate_discount(100, True)\n\ntests/test_pricing.py:11:\
+      \ AssertionError\n- generated xml file: /var/folders/f0/ywnq5q_x0qd3mvq36tb_1j5c0000gq/T/tmpvgppvkvu/pytest-results.xml\
+      \ -\n=========================== short test summary info ============================\n\
+      FAILED tests/test_pricing.py::test_vip_discount_applies_at_threshold - assert...\n\
+      ========================= 1 failed, 1 passed in 0.02s ==========================\n"
+  - code_path: demo_api/services/pricing.py
+    symbol: calculate_discount
+    mutation: line 7:37 constant 0.1 -> 1.1
+    status: killed
+    test_results:
+    - selector: tests/test_pricing.py::test_non_vip_customer_gets_no_discount
+      status: passed
+      message: ''
+    - selector: tests/test_pricing.py::test_vip_discount_applies_at_threshold
+      status: failed
+      message: "assert 110.0 == 10.0\n +  where 110.0 = calculate_discount(100, True)"
+    pytest_output: "============================= test session starts ==============================\n\
+      platform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0\nrootdir: /Users/dmytrohuz/Code/testurtion\n\
+      configfile: pyproject.toml\ncollected 2 items\n\ntests/test_pricing.py .F  \
+      \                                               [100%]\n\n===================================\
+      \ FAILURES ===================================\n____________________ test_vip_discount_applies_at_threshold\
+      \ ____________________\n\n    @ac(\"AC-1\")\n    def test_vip_discount_applies_at_threshold():\n\
+      >       assert calculate_discount(100, True) == 10.0\nE       assert 110.0 ==\
+      \ 10.0\nE        +  where 110.0 = calculate_discount(100, True)\n\ntests/test_pricing.py:11:\
+      \ AssertionError\n- generated xml file: /var/folders/f0/ywnq5q_x0qd3mvq36tb_1j5c0000gq/T/tmp_amgimkt/pytest-results.xml\
+      \ -\n=========================== short test summary info ============================\n\
+      FAILED tests/test_pricing.py::test_vip_discount_applies_at_threshold - assert...\n\
+      ========================= 1 failed, 1 passed in 0.02s ==========================\n"
+  - code_path: demo_api/services/pricing.py
+    symbol: calculate_discount
+    mutation: line 7:26 Mult -> Div
+    status: killed
+    test_results:
+    - selector: tests/test_pricing.py::test_non_vip_customer_gets_no_discount
+      status: passed
+      message: ''
+    - selector: tests/test_pricing.py::test_vip_discount_applies_at_threshold
+      status: failed
+      message: "assert 1000.0 == 10.0\n +  where 1000.0 = calculate_discount(100,\
+        \ True)"
+    pytest_output: "============================= test session starts ==============================\n\
+      platform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0\nrootdir: /Users/dmytrohuz/Code/testurtion\n\
+      configfile: pyproject.toml\ncollected 2 items\n\ntests/test_pricing.py .F  \
+      \                                               [100%]\n\n===================================\
+      \ FAILURES ===================================\n____________________ test_vip_discount_applies_at_threshold\
+      \ ____________________\n\n    @ac(\"AC-1\")\n    def test_vip_discount_applies_at_threshold():\n\
+      >       assert calculate_discount(100, True) == 10.0\nE       assert 1000.0\
+      \ == 10.0\nE        +  where 1000.0 = calculate_discount(100, True)\n\ntests/test_pricing.py:11:\
+      \ AssertionError\n- generated xml file: /var/folders/f0/ywnq5q_x0qd3mvq36tb_1j5c0000gq/T/tmpzzmfhnxm/pytest-results.xml\
+      \ -\n=========================== short test summary info ============================\n\
+      FAILED tests/test_pricing.py::test_vip_discount_applies_at_threshold - assert...\n\
+      ========================= 1 failed, 1 passed in 0.02s ==========================\n"
+  - code_path: demo_api/services/pricing.py
+    symbol: calculate_discount
+    mutation: line 7:43 constant 2 -> 3
+    status: unkilled
+    test_results:
+    - selector: tests/test_pricing.py::test_non_vip_customer_gets_no_discount
+      status: passed
+      message: ''
+    - selector: tests/test_pricing.py::test_vip_discount_applies_at_threshold
+      status: passed
+      message: ''
+    pytest_output: '============================= test session starts ==============================
+
+      platform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0
+
+      rootdir: /Users/dmytrohuz/Code/testurtion
+
+      configfile: pyproject.toml
+
+      collected 2 items
+
+
+      tests/test_pricing.py ..                                                 [100%]
+
+
+      - generated xml file: /var/folders/f0/ywnq5q_x0qd3mvq36tb_1j5c0000gq/T/tmp7inh2wce/pytest-results.xml
+      -
+
+      ============================== 2 passed in 0.01s ===============================
+
+      '

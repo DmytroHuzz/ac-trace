@@ -56,7 +56,7 @@ source .venv/bin/activate
 python3 -m pip install .
 ```
 
-All examples below use `python -m ac_trace`. If you prefer, you can also use the installed `ac-trace` command.
+All examples below use `python -m ac_trace`.
 
 ### 2. Inspect The Demo Inputs
 
