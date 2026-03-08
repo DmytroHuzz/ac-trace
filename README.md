@@ -10,12 +10,12 @@ It makes three things explicit:
 
 The manifest is stored as YAML, and the CLI can:
 
-- show an overview of AC -> code -> tests
-- validate that the mapped files and symbols exist
+- validate a manifest and print its overview in one step
+- run mapped tests, optionally run mutation checks, and emit an HTML or YAML report in one step
 - run only the tests linked to a specific AC
 - mutate mapped code and verify that the mapped tests fail
 - infer a traceability manifest from Python tests annotated with AC ids
-- generate Markdown or HTML reports for review and handoff
+- generate HTML or YAML execution reports for review and handoff
 
 ## Why this shape
 
@@ -52,46 +52,40 @@ source .venv/bin/activate
 python3 -m pip install .
 ```
 
-Inspect the traceability map:
-
-```bash
-python3 -m ac_trace overview traceability.yaml
-```
-
-Validate that all references exist:
-
-```bash
-python3 -m ac_trace validate traceability.yaml
-```
-
-Run tests for one AC:
-
-```bash
-python3 -m ac_trace test traceability.yaml --ac AC-1
-```
-
-Run the mutation-style test check:
-
-```bash
-python3 -m ac_trace mutation-check traceability.yaml
-```
-
 Infer a manifest from the AC catalog plus annotated tests:
 
 ```bash
-python3 -m ac_trace infer acceptance_criteria.yaml --output traceability.generated.yaml
+python3 -m ac_trace infer acceptance_criteria.yaml --output traceability.yaml
 ```
 
-Generate a Markdown report:
+Validate the manifest and print its overview:
 
 ```bash
-python3 -m ac_trace report traceability.generated.yaml --format markdown --with-mutation-check --output traceability-report.md
+python3 -m ac_trace manifest traceability.yaml
 ```
 
-Generate an HTML report:
+Run tests for all ACs, run mutation checks, and write the default HTML report:
 
 ```bash
-python3 -m ac_trace report traceability.generated.yaml --format html --with-mutation-check --output traceability-report.html
+python3 -m ac_trace run traceability.yaml
+```
+
+Run only one AC, skip mutation, and write a YAML report:
+
+```bash
+python3 -m ac_trace run traceability.yaml --ac AC-1 --no-mutation --report yaml --output ac1-result.yaml
+```
+
+Generate an HTML report from the inferred manifest:
+
+```bash
+python3 -m ac_trace run traceability.generated.yaml --report html --output traceability-report.html
+```
+
+Run the inferred manifest without writing any report:
+
+```bash
+python3 -m ac_trace run traceability.generated.yaml --report none
 ```
 
 ## Inference workflow
@@ -112,9 +106,26 @@ The inference command then:
 1. Finds `@ac(...)`-annotated tests under `test_paths`
 2. Runs each mapped test with coverage
 3. Uses Python AST ranges to convert covered lines into function-level code references
-4. Emits a normal traceability manifest that the rest of the tool can validate, test, mutate, and report on
+4. Emits a normal traceability manifest that the rest of the tool can validate, execute, mutate, and report on
 
 This keeps the mapping recoverable without pretending that AC-to-code linkage can be guessed purely from filenames or LLM output.
+
+## CLI shape
+
+`manifest`
+
+- validates the manifest first
+- prints the AC -> code -> tests overview only when validation passes
+- supports `--ac AC_ID` to scope the output
+
+`run`
+
+- validates the manifest first
+- runs the mapped pytest selectors
+- runs mutation checks by default; disable with `--no-mutation`
+- writes an HTML report by default; use `--report yaml` or `--report none`
+- scopes to all ACs by default; use `--ac AC_ID` to narrow it
+- writes to `test_result_report.html` by default for HTML and `test_result_report.yaml` for YAML unless `--output` is provided
 
 ## Manifest shape
 

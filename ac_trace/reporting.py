@@ -3,9 +3,11 @@ from __future__ import annotations
 from collections import Counter
 from datetime import datetime, timezone
 from html import escape
+import yaml
 
 from ac_trace.manifest import TraceManifest
 from ac_trace.mutator import MutationReport
+from ac_trace.test_runner import PytestResult
 
 
 def _summary_counts(manifest: TraceManifest) -> dict[str, int]:
@@ -28,16 +30,37 @@ def _mutation_by_criterion(reports: list[MutationReport]) -> dict[str, list[Muta
     return grouped
 
 
+def _test_status(test_result: PytestResult | None) -> str:
+    if test_result is None:
+        return "not run"
+    return "passed" if test_result.returncode == 0 else "failed"
+
+
+def _mutation_status(
+    mutation_requested: bool,
+    mutation_reports: list[MutationReport] | None,
+) -> str:
+    if not mutation_requested:
+        return "disabled"
+    if mutation_reports is None:
+        return "not run"
+    if any(report.status == "survived" for report in mutation_reports):
+        return "failed"
+    return "passed"
+
+
 def render_markdown_report(
     manifest: TraceManifest,
     validation_errors: list[str] | None = None,
+    test_result: PytestResult | None = None,
+    mutation_requested: bool = False,
     mutation_reports: list[MutationReport] | None = None,
 ) -> str:
     counts = _summary_counts(manifest)
     validation_errors = validation_errors or []
-    mutation_reports = mutation_reports or []
-    mutation_counts = _mutation_counts(mutation_reports)
-    mutations_by_criterion = _mutation_by_criterion(mutation_reports)
+    effective_mutation_reports = mutation_reports or []
+    mutation_counts = _mutation_counts(effective_mutation_reports)
+    mutations_by_criterion = _mutation_by_criterion(effective_mutation_reports)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
     lines = [
@@ -52,9 +75,11 @@ def render_markdown_report(
         f"- Test files: {counts['test_files']}",
         f"- Test cases: {counts['test_cases']}",
         f"- Validation: {'passed' if not validation_errors else 'failed'}",
+        f"- Tests: {_test_status(test_result)}",
+        f"- Mutation check: {_mutation_status(mutation_requested, mutation_reports)}",
     ]
 
-    if mutation_reports:
+    if mutation_reports is not None:
         lines.extend(
             [
                 f"- Mutations killed: {mutation_counts.get('killed', 0)}",
@@ -67,6 +92,15 @@ def render_markdown_report(
         lines.extend(["", "## Validation Errors", ""])
         for error in validation_errors:
             lines.append(f"- {error}")
+
+    if test_result is not None:
+        lines.extend(["", "## Test Run", ""])
+        lines.append(f"- Return code: {test_result.returncode}")
+        lines.append("- Selectors:")
+        for selector in test_result.selectors:
+            lines.append(f"  - `{selector}`")
+        if test_result.returncode != 0:
+            lines.extend(["", "Pytest Output", "", "```text", test_result.stdout + test_result.stderr, "```"])
 
     for criterion in manifest.acceptance_criteria:
         lines.extend(["", f"## {criterion.id}: {criterion.title}", "", criterion.description, "", "Code", ""])
@@ -97,13 +131,15 @@ def render_markdown_report(
 def render_html_report(
     manifest: TraceManifest,
     validation_errors: list[str] | None = None,
+    test_result: PytestResult | None = None,
+    mutation_requested: bool = False,
     mutation_reports: list[MutationReport] | None = None,
 ) -> str:
     counts = _summary_counts(manifest)
     validation_errors = validation_errors or []
-    mutation_reports = mutation_reports or []
-    mutation_counts = _mutation_counts(mutation_reports)
-    mutations_by_criterion = _mutation_by_criterion(mutation_reports)
+    effective_mutation_reports = mutation_reports or []
+    mutation_counts = _mutation_counts(effective_mutation_reports)
+    mutations_by_criterion = _mutation_by_criterion(effective_mutation_reports)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
     summary_items = [
@@ -112,8 +148,10 @@ def render_html_report(
         ("Test files", counts["test_files"]),
         ("Test cases", counts["test_cases"]),
         ("Validation", "passed" if not validation_errors else "failed"),
+        ("Tests", _test_status(test_result)),
+        ("Mutation check", _mutation_status(mutation_requested, mutation_reports)),
     ]
-    if mutation_reports:
+    if mutation_reports is not None:
         summary_items.extend(
             [
                 ("Mutations killed", mutation_counts.get("killed", 0)),
@@ -126,6 +164,23 @@ def render_html_report(
     if validation_errors:
         errors_markup = "".join(f"<li>{escape(error)}</li>" for error in validation_errors)
         sections.append(f"<section><h2>Validation Errors</h2><ul>{errors_markup}</ul></section>")
+
+    if test_result is not None:
+        selectors_markup = "".join(f"<li>{escape(selector)}</li>" for selector in test_result.selectors)
+        output_markup = ""
+        if test_result.returncode != 0:
+            output_markup = f"<h3>Pytest Output</h3><pre>{escape(test_result.stdout + test_result.stderr)}</pre>"
+        sections.append(
+            (
+                "<section>"
+                "<h2>Test Run</h2>"
+                f"<p>Status: <strong>{escape(_test_status(test_result))}</strong></p>"
+                f"<p>Return code: {test_result.returncode}</p>"
+                f"<ul>{selectors_markup}</ul>"
+                f"{output_markup}"
+                "</section>"
+            )
+        )
 
     for criterion in manifest.acceptance_criteria:
         code_rows = "".join(
@@ -226,10 +281,93 @@ def render_report(
     *,
     format: str,
     validation_errors: list[str] | None = None,
+    test_result: PytestResult | None = None,
+    mutation_requested: bool = False,
     mutation_reports: list[MutationReport] | None = None,
 ) -> str:
     if format == "markdown":
-        return render_markdown_report(manifest, validation_errors, mutation_reports)
+        return render_markdown_report(
+            manifest,
+            validation_errors,
+            test_result,
+            mutation_requested,
+            mutation_reports,
+        )
     if format == "html":
-        return render_html_report(manifest, validation_errors, mutation_reports)
+        return render_html_report(
+            manifest,
+            validation_errors,
+            test_result,
+            mutation_requested,
+            mutation_reports,
+        )
+    if format == "yaml":
+        payload = {
+            "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ"),
+            "summary": {
+                "criteria": len(manifest.acceptance_criteria),
+                "code_references": sum(len(criterion.code) for criterion in manifest.acceptance_criteria),
+                "test_files": sum(len(criterion.tests) for criterion in manifest.acceptance_criteria),
+                "test_cases": sum(
+                    len(test_ref.cases)
+                    for criterion in manifest.acceptance_criteria
+                    for test_ref in criterion.tests
+                ),
+                "validation": "passed" if not validation_errors else "failed",
+                "tests": _test_status(test_result),
+                "mutation_check": _mutation_status(mutation_requested, mutation_reports),
+            },
+            "validation_errors": validation_errors or [],
+            "test_run": None
+            if test_result is None
+            else {
+                "returncode": test_result.returncode,
+                "status": _test_status(test_result),
+                "selectors": test_result.selectors,
+                "stdout": test_result.stdout,
+                "stderr": test_result.stderr,
+            },
+            "mutation_check": {
+                "requested": mutation_requested,
+                "reports": None
+                if mutation_reports is None
+                else [
+                    {
+                        "criterion_id": report.criterion_id,
+                        "code_path": report.code_path,
+                        "symbol": report.symbol,
+                        "mutation": report.mutation,
+                        "status": report.status,
+                        "selectors": report.selectors,
+                        "pytest_output": report.pytest_output,
+                    }
+                    for report in mutation_reports
+                ],
+            },
+            "acceptance_criteria": [
+                {
+                    "id": criterion.id,
+                    "title": criterion.title,
+                    "description": criterion.description,
+                    "code": [
+                        {
+                            "path": code_ref.path,
+                            "symbol": code_ref.symbol,
+                            "lines": code_ref.lines,
+                            "mutate": code_ref.mutate,
+                        }
+                        for code_ref in criterion.code
+                    ],
+                    "tests": [
+                        {
+                            "path": test_ref.path,
+                            "cases": test_ref.cases,
+                        }
+                        for test_ref in criterion.tests
+                    ],
+                }
+                for criterion in manifest.acceptance_criteria
+            ],
+        }
+        return yaml.safe_dump(payload, sort_keys=False)
     raise ValueError(f"Unsupported report format: {format}")

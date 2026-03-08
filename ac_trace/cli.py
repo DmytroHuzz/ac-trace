@@ -12,31 +12,42 @@ from ac_trace.test_runner import run_tests_for_manifest
 from ac_trace.validator import validate_manifest
 
 
+class CliError(ValueError):
+    """Raised when CLI arguments are inconsistent."""
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Acceptance criteria traceability demo"
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    overview = subparsers.add_parser("overview")
-    overview.add_argument("manifest", help="Path to traceability YAML file")
-    overview.add_argument(
+    manifest = subparsers.add_parser("manifest")
+    manifest.add_argument("manifest", help="Path to traceability YAML file")
+    manifest.add_argument(
         "--ac", action="append", dest="ac_ids", help="Acceptance criterion id"
     )
 
-    validate = subparsers.add_parser("validate")
-    validate.add_argument("manifest", help="Path to traceability YAML file")
-
-    test = subparsers.add_parser("test")
-    test.add_argument("manifest", help="Path to traceability YAML file")
-    test.add_argument(
+    run = subparsers.add_parser("run")
+    run.add_argument("manifest", help="Path to traceability YAML file")
+    run.add_argument(
         "--ac", action="append", dest="ac_ids", help="Acceptance criterion id"
     )
-
-    mutation_check = subparsers.add_parser("mutation-check")
-    mutation_check.add_argument("manifest", help="Path to traceability YAML file")
-    mutation_check.add_argument(
-        "--ac", action="append", dest="ac_ids", help="Acceptance criterion id"
+    run.add_argument(
+        "--mutation",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Run mutation checks for mapped code",
+    )
+    run.add_argument(
+        "--report",
+        choices=["none", "html", "yaml"],
+        default="html",
+        help="Write no report, an HTML report, or a YAML report",
+    )
+    run.add_argument(
+        "--output",
+        help="Path to write the generated report",
     )
 
     infer = subparsers.add_parser("infer")
@@ -45,25 +56,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--output", help="Path to write the inferred traceability manifest"
     )
 
-    report = subparsers.add_parser("report")
-    report.add_argument("manifest", help="Path to traceability YAML file")
-    report.add_argument(
-        "--ac", action="append", dest="ac_ids", help="Acceptance criterion id"
-    )
-    report.add_argument("--format", choices=["markdown", "html"], default="markdown")
-    report.add_argument("--output", help="Path to write the generated report")
-    report.add_argument(
-        "--with-mutation-check",
-        action="store_true",
-        help="Include mutation-check results",
-    )
-
     return parser
 
 
-def cmd_overview(manifest_path: str, ac_ids: list[str] | None) -> int:
-    manifest = load_manifest(manifest_path)
-    for criterion in manifest.find_criteria(ac_ids):
+def _print_overview(manifest) -> None:
+    for criterion in manifest.acceptance_criteria:
         print(f"{criterion.id}: {criterion.title}")
         print(f"  description: {criterion.description}")
         for code_ref in criterion.code:
@@ -73,36 +70,14 @@ def cmd_overview(manifest_path: str, ac_ids: list[str] | None) -> int:
             cases = ", ".join(test_ref.cases)
             print(f"  tests: {test_ref.path} -> {cases}")
         print()
-    return 0
 
 
-def cmd_validate(manifest_path: str) -> int:
-    manifest = load_manifest(manifest_path)
-    errors = validate_manifest(manifest)
-    if errors:
-        for error in errors:
-            print(f"ERROR: {error}")
-        return 1
-
-    print("Manifest is valid.")
-    return 0
+def _print_validation_errors(errors: list[str]) -> None:
+    for error in errors:
+        print(f"ERROR: {error}")
 
 
-def cmd_test(manifest_path: str, ac_ids: list[str] | None) -> int:
-    manifest = load_manifest(manifest_path).select(ac_ids)
-    result = run_tests_for_manifest(manifest, ac_ids)
-    if result.stdout:
-        print(result.stdout, end="")
-    if result.stderr:
-        print(result.stderr, end="")
-    return result.returncode
-
-
-def cmd_mutation_check(manifest_path: str, ac_ids: list[str] | None) -> int:
-    manifest = load_manifest(manifest_path).select(ac_ids)
-    reports = run_mutation_check(manifest, ac_ids)
-
-    exit_code = 0
+def _print_mutation_reports(reports) -> None:
     for report in reports:
         selectors = ", ".join(report.selectors)
         print(
@@ -111,7 +86,6 @@ def cmd_mutation_check(manifest_path: str, ac_ids: list[str] | None) -> int:
         )
         print(f"  selectors: {selectors}")
         if report.status in {"survived"}:
-            exit_code = 1
             if report.pytest_output:
                 print("  pytest output:")
                 for line in report.pytest_output.strip().splitlines():
@@ -119,7 +93,26 @@ def cmd_mutation_check(manifest_path: str, ac_ids: list[str] | None) -> int:
         elif report.status == "skipped":
             print("  pytest output: skipped because no supported mutation was found")
 
-    return exit_code
+
+def _default_output_path(report_format: str) -> Path | None:
+    if report_format == "html":
+        return Path("test_result_report.html").resolve()
+    if report_format == "yaml":
+        return Path("test_result_report.yaml").resolve()
+    return None
+
+
+def cmd_manifest(manifest_path: str, ac_ids: list[str] | None) -> int:
+    manifest = load_manifest(manifest_path).select(ac_ids)
+    errors = validate_manifest(manifest)
+    if errors:
+        _print_validation_errors(errors)
+        return 1
+
+    print("Manifest is valid.")
+    print()
+    _print_overview(manifest)
+    return 0
 
 
 def cmd_infer(catalog_path: str, output: str | None) -> int:
@@ -139,34 +132,52 @@ def cmd_infer(catalog_path: str, output: str | None) -> int:
     return 0
 
 
-def cmd_report(
+def cmd_run(
     manifest_path: str,
     ac_ids: list[str] | None,
-    format: str,
+    mutation: bool,
+    report_format: str,
     output: str | None,
-    with_mutation_check: bool,
 ) -> int:
     manifest = load_manifest(manifest_path).select(ac_ids)
     validation_errors = validate_manifest(manifest)
+    test_result = None
     mutation_reports = None
-    if with_mutation_check and not validation_errors:
-        mutation_reports = run_mutation_check(manifest)
-
-    content = render_report(
-        manifest,
-        format=format,
-        validation_errors=validation_errors,
-        mutation_reports=mutation_reports,
-    )
-
-    if output:
-        output_path = Path(output).resolve()
-        output_path.write_text(content, encoding="utf-8")
-        print(f"Wrote {format} report to {output_path}")
-    else:
-        print(content, end="")
 
     if validation_errors:
+        _print_validation_errors(validation_errors)
+    else:
+        test_result = run_tests_for_manifest(manifest)
+        if test_result.stdout:
+            print(test_result.stdout, end="")
+        if test_result.stderr:
+            print(test_result.stderr, end="")
+
+        if mutation:
+            if test_result.returncode == 0:
+                mutation_reports = run_mutation_check(manifest)
+                _print_mutation_reports(mutation_reports)
+            else:
+                print("Skipping mutation check because mapped tests failed.")
+
+    if report_format == "none" and output is not None:
+        raise CliError("Cannot use --output when --report is 'none'")
+
+    if report_format != "none":
+        output_path = Path(output).resolve() if output else _default_output_path(report_format)
+        content = render_report(
+            manifest,
+            format=report_format,
+            validation_errors=validation_errors,
+            test_result=test_result,
+            mutation_requested=mutation,
+            mutation_reports=mutation_reports,
+        )
+        assert output_path is not None
+        output_path.write_text(content, encoding="utf-8")
+        print(f"Wrote {report_format} report to {output_path}")
+
+    if validation_errors or (test_result is not None and test_result.returncode != 0):
         return 1
     if mutation_reports and any(
         report.status == "survived" for report in mutation_reports
@@ -180,25 +191,19 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        if args.command == "overview":
-            return cmd_overview(args.manifest, args.ac_ids)
-        if args.command == "validate":
-            return cmd_validate(args.manifest)
-        if args.command == "test":
-            return cmd_test(args.manifest, args.ac_ids)
-        if args.command == "mutation-check":
-            return cmd_mutation_check(args.manifest, args.ac_ids)
+        if args.command == "manifest":
+            return cmd_manifest(args.manifest, args.ac_ids)
         if args.command == "infer":
             return cmd_infer(args.catalog, args.output)
-        if args.command == "report":
-            return cmd_report(
+        if args.command == "run":
+            return cmd_run(
                 args.manifest,
                 args.ac_ids,
-                args.format,
+                args.mutation,
+                args.report,
                 args.output,
-                args.with_mutation_check,
             )
-    except (CatalogError, InferenceError, ManifestError) as error:
+    except (CatalogError, CliError, InferenceError, ManifestError) as error:
         print(f"ERROR: {error}")
         return 1
 
