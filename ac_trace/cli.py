@@ -89,11 +89,11 @@ def _print_mutation_reports(reports) -> None:
             print("  pytest output: skipped because no supported mutation was found")
 
 
-def _default_output_path(report_format: str) -> Path | None:
+def _default_output_path(report_format: str, manifest_path: Path) -> Path | None:
     if report_format == "html":
-        return Path("test_result_report.html").resolve()
+        return (manifest_path.parent / "test_result_report.html").resolve()
     if report_format == "yaml":
-        return Path("test_result_report.yaml").resolve()
+        return (manifest_path.parent / "test_result_report.yaml").resolve()
     return None
 
 
@@ -133,7 +133,8 @@ def cmd_run(
     report_format: str,
     output: str | None,
 ) -> int:
-    manifest = load_manifest(manifest_path).select(ac_ids)
+    manifest_file = Path(manifest_path).resolve()
+    manifest = load_manifest(manifest_file).select(ac_ids)
     validation_errors = validate_manifest(manifest)
     mutation_reports = None
 
@@ -147,7 +148,11 @@ def cmd_run(
         raise CliError("Cannot use --output when --report is 'none'")
 
     if report_format != "none":
-        output_path = Path(output).resolve() if output else _default_output_path(report_format)
+        output_path = (
+            Path(output).resolve()
+            if output
+            else _default_output_path(report_format, manifest_file)
+        )
         content = render_report(
             manifest,
             format=report_format,

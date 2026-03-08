@@ -1,5 +1,5 @@
 from ac_trace.annotations import ac
-from demo_api.services.pricing import (
+from demo.demo_api.services.pricing import (
     build_quote,
     calculate_discount,
     calculate_shipping,

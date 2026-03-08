@@ -1,2 +1,0 @@
-[console_scripts]
-ac-trace = ac_trace.cli:main

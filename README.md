@@ -36,10 +36,11 @@ The demo API is a tiny quote service with these ACs:
 - `AC-3`: `POST /quote` returns subtotal, discount, shipping, and total
 - `AC-4`: `GET /health` returns `{"status": "ok"}`
 
-The repo now includes two YAML files:
+The demo project now lives under [demo](/Users/dmytrohuz/Code/testurtion/demo):
 
-- [acceptance_criteria.yaml](/Users/dmytrohuz/Code/testurtion/acceptance_criteria.yaml): source-of-truth AC catalog
-- [traceability.yaml](/Users/dmytrohuz/Code/testurtion/traceability.yaml): hand-authored traceability example
+- [acceptance_criteria.yaml](/Users/dmytrohuz/Code/testurtion/demo/acceptance_criteria.yaml): source-of-truth AC catalog
+- [traceability.yaml](/Users/dmytrohuz/Code/testurtion/demo/traceability.yaml): hand-authored traceability example
+- [test_result_report.html](/Users/dmytrohuz/Code/testurtion/demo/test_result_report.html): generated demo report
 
 ## Quick start
 
@@ -54,37 +55,37 @@ python3 -m pip install .
 Infer a manifest from the AC catalog plus annotated tests:
 
 ```bash
-python3 -m ac_trace infer acceptance_criteria.yaml --output traceability.yaml
+python3 -m ac_trace infer demo/acceptance_criteria.yaml --output demo/traceability.yaml
 ```
 
 Validate the manifest and print its overview:
 
 ```bash
-python3 -m ac_trace manifest traceability.yaml
+python3 -m ac_trace manifest demo/traceability.yaml
 ```
 
 Run mutation checks for all ACs and write the default HTML report:
 
 ```bash
-python3 -m ac_trace run traceability.yaml
+python3 -m ac_trace run demo/traceability.yaml
 ```
 
 Run only one AC and write a YAML report:
 
 ```bash
-python3 -m ac_trace run traceability.yaml --ac AC-1 --report yaml --output ac1-result.yaml
+python3 -m ac_trace run demo/traceability.yaml --ac AC-1 --report yaml --output demo/ac1-result.yaml
 ```
 
 Generate an HTML report from the inferred manifest:
 
 ```bash
-python3 -m ac_trace run traceability.generated.yaml --report html --output traceability-report.html
+python3 -m ac_trace run demo/traceability.generated.yaml --report html --output demo/traceability-report.html
 ```
 
 Run the inferred manifest without writing any report:
 
 ```bash
-python3 -m ac_trace run traceability.generated.yaml --report none
+python3 -m ac_trace run demo/traceability.generated.yaml --report none
 ```
 
 ## Inference workflow
@@ -125,7 +126,7 @@ This keeps the mapping recoverable without pretending that AC-to-code linkage ca
 - applies one mutation site at a time and runs all mapped tests from `tests:` for each mutation
 - writes an HTML report by default; use `--report yaml` or `--report none`
 - scopes to all ACs by default; use `--ac AC_ID` to narrow it
-- writes to `test_result_report.html` by default for HTML and `test_result_report.yaml` for YAML unless `--output` is provided
+- writes to `test_result_report.html` or `test_result_report.yaml` next to the manifest unless `--output` is provided
 - marks an AC as `unkilled` if any mapped test never fails across all mutations for that AC
 
 ## Manifest shape

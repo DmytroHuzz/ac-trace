@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_mutate_symbol_respects_line_range(tmp_path):
-    source_path = PROJECT_ROOT / "demo_api/services/pricing.py"
+    source_path = PROJECT_ROOT / "demo/demo_api/services/pricing.py"
     temp_path = tmp_path / "pricing.py"
     temp_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
 
@@ -28,7 +28,7 @@ def test_mutate_symbol_respects_line_range(tmp_path):
 
 
 def test_run_mutation_check_uses_code_ref_lines_and_all_supported_mutations():
-    manifest = load_manifest(PROJECT_ROOT / "traceability.yaml").select(["AC-1"])
+    manifest = load_manifest(PROJECT_ROOT / "demo/traceability.yaml").select(["AC-1"])
 
     reports = run_mutation_check(manifest)
     assert len(reports) == 6

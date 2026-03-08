@@ -63,6 +63,16 @@ def _selector_from_testcase(
     if direct_match is not None:
         return direct_match
 
+    if classname_attr:
+        suffix_matches = [
+            selector
+            for (expected_classname, expected_name), selector in expected_selectors.items()
+            if name_attr == expected_name
+            and classname_attr.endswith(f".{expected_classname}")
+        ]
+        if len(suffix_matches) == 1:
+            return suffix_matches[0]
+
     if not file_attr:
         return None
 

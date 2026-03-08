@@ -20,4 +20,4 @@ ac-trace = "ac_trace.cli:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests"]
+testpaths = ["tests", "demo/tests"]

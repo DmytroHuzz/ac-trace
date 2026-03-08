@@ -8,10 +8,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_validate_manifest_rejects_line_range_outside_symbol(tmp_path):
+    demo_root = (PROJECT_ROOT / "demo").as_posix()
     manifest_path = tmp_path / "traceability.invalid.yaml"
     manifest_path.write_text(
         (
-            f"project_root: {PROJECT_ROOT.as_posix()}\n"
+            f"project_root: {demo_root}\n"
             "acceptance_criteria:\n"
             "  - id: AC-X\n"
             "    title: Invalid lines\n"

@@ -1,5 +1,5 @@
 from ac_trace.annotations import ac
-from demo_api.app import create_app
+from demo.demo_api.app import create_app
 
 
 @ac("AC-4")

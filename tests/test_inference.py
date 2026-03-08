@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_infer_manifest_from_catalog(tmp_path):
-    catalog = load_catalog(PROJECT_ROOT / "acceptance_criteria.yaml")
+    catalog = load_catalog(PROJECT_ROOT / "demo/acceptance_criteria.yaml")
 
     manifest = infer_manifest(catalog)
     errors = validate_manifest(manifest)

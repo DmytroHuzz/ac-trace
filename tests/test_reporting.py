@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_render_markdown_report_includes_summary_and_mutations():
-    manifest = load_manifest(PROJECT_ROOT / "traceability.yaml")
+    manifest = load_manifest(PROJECT_ROOT / "demo/traceability.yaml")
     mutation_reports = [
         MutationReport(
             criterion_id="AC-1",
@@ -56,7 +56,7 @@ def test_render_markdown_report_includes_summary_and_mutations():
 
 
 def test_render_html_report_includes_sections():
-    manifest = load_manifest(PROJECT_ROOT / "traceability.yaml")
+    manifest = load_manifest(PROJECT_ROOT / "demo/traceability.yaml")
     mutation_reports = [
         MutationReport(
             criterion_id="AC-1",
@@ -100,7 +100,7 @@ def test_render_html_report_includes_sections():
 
 
 def test_render_yaml_report_includes_per_test_mutation_results():
-    manifest = load_manifest(PROJECT_ROOT / "traceability.yaml")
+    manifest = load_manifest(PROJECT_ROOT / "demo/traceability.yaml")
     mutation_reports = [
         MutationReport(
             criterion_id="AC-1",

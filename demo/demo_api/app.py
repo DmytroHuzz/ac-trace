@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from flask import Flask, jsonify, request
 
-from demo_api.services.pricing import build_quote
+from demo.demo_api.services.pricing import build_quote
 
 
 def create_app() -> Flask:
