@@ -25,7 +25,7 @@ acceptance_criteria:
         cases:
           - test_expedited_shipping_fee
           - test_standard_shipping_fee
-          - test_standard_shipping_fee2
+          - test_standard_shipping_fee_never_fails
   - id: AC-3
     title: Quote API returns a cost breakdown
     description: POST /quote returns subtotal, discount, shipping, and total.
@@ -59,8 +59,7 @@ acceptance_criteria:
     code:
       - path: demo_api/app.py
         symbol: create_app.health
-        lines: 12-13
-        mutate: false
+        mutate: true
     tests:
       - path: tests/test_api.py
         cases:

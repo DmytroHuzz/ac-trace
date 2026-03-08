@@ -94,6 +94,20 @@ def _criterion_summaries(
     return summaries
 
 
+def _criterion_status_counts(
+    summaries: dict[str, CriterionMutationSummary]
+) -> Counter[str]:
+    return Counter(summary.status for summary in summaries.values())
+
+
+def _status_label(status: str) -> str:
+    return {
+        "killed": "Killed",
+        "unkilled": "Unkilled",
+        "not_run": "Not Run",
+    }.get(status, status.replace("_", " ").title())
+
+
 def render_markdown_report(
     manifest: TraceManifest,
     validation_errors: list[str] | None = None,
@@ -105,6 +119,7 @@ def render_markdown_report(
     mutation_counts = _mutation_counts(mutation_reports)
     mutations_by_criterion = _mutation_by_criterion(mutation_reports)
     summaries = _criterion_summaries(manifest, mutation_reports)
+    criterion_status_counts = _criterion_status_counts(summaries)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
     lines = [
@@ -115,6 +130,8 @@ def render_markdown_report(
         "## Summary",
         "",
         f"- Acceptance criteria: {counts['criteria']}",
+        f"- Killed ACs: {criterion_status_counts.get('killed', 0)}",
+        f"- Unkilled ACs: {criterion_status_counts.get('unkilled', 0)}",
         f"- Code references: {counts['code_refs']}",
         f"- Test files: {counts['test_files']}",
         f"- Test cases: {counts['test_cases']}",
@@ -134,13 +151,13 @@ def render_markdown_report(
         lines.extend(
             [
                 "",
-                f"## {criterion.id}: {criterion.title}",
+                f"## {criterion.id}: {criterion.title} [{_status_label(summary.status)}]",
                 "",
                 criterion.description,
                 "",
                 "Summary",
                 "",
-                f"- Status: {summary.status}",
+                f"- Status: {_status_label(summary.status)}",
                 f"- Mutations: {summary.total_mutations}",
                 f"- Tests that failed at least once: {summary.tests_failed_at_least_once}",
                 f"- Tests never failed: {summary.tests_never_failed}",
@@ -193,10 +210,13 @@ def render_html_report(
     mutation_counts = _mutation_counts(mutation_reports)
     mutations_by_criterion = _mutation_by_criterion(mutation_reports)
     summaries = _criterion_summaries(manifest, mutation_reports)
+    criterion_status_counts = _criterion_status_counts(summaries)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
     summary_items = [
         ("Acceptance criteria", counts["criteria"]),
+        ("Killed ACs", criterion_status_counts.get("killed", 0)),
+        ("Unkilled ACs", criterion_status_counts.get("unkilled", 0)),
         ("Code references", counts["code_refs"]),
         ("Test files", counts["test_files"]),
         ("Test cases", counts["test_cases"]),
@@ -261,6 +281,9 @@ def render_html_report(
                 f"<ul>{never_failed_items}</ul>"
             )
 
+        status_class = f"status-{escape(summary.status)}"
+        status_label = _status_label(summary.status)
+
         mutation_blocks = []
         for report in mutations_by_criterion.get(criterion.id, []):
             test_result_rows = "".join(
@@ -289,7 +312,10 @@ def render_html_report(
         sections.append(
             (
                 "<section>"
+                "<div class='section-head'>"
                 f"<h2>{escape(criterion.id)}: {escape(criterion.title)}</h2>"
+                f"<span class='status-badge {status_class}'>{escape(status_label)}</span>"
+                "</div>"
                 f"<p>{escape(criterion.description)}</p>"
                 "<h3>Summary</h3>"
                 "<table>"
@@ -338,7 +364,12 @@ def render_html_report(
         ".label { color: var(--muted); font-size: 0.9rem; }"
         ".value { font-size: 1.5rem; margin-top: 6px; }"
         "section { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 20px; margin-bottom: 18px; }"
+        ".section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }"
         ".mutation { border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; background: #fffaf0; }"
+        ".status-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 12px; font-size: 0.9rem; font-weight: 700; }"
+        ".status-killed { background: #dff3e4; color: #1b6b36; }"
+        ".status-unkilled { background: #fbe3e4; color: #a22b2f; }"
+        ".status-not_run { background: #ece8dc; color: #675d4a; }"
         "table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }"
         "th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 10px 8px; vertical-align: top; }"
         "ul { margin: 0; padding-left: 20px; }"
@@ -380,6 +411,7 @@ def render_report(
     if format == "yaml":
         mutation_reports = mutation_reports or []
         summaries = _criterion_summaries(manifest, mutation_reports)
+        criterion_status_counts = _criterion_status_counts(summaries)
         payload = {
             "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ"),
             "summary": {
@@ -397,6 +429,11 @@ def render_report(
                 ),
                 "validation": "passed" if not validation_errors else "failed",
                 "mutations": dict(_mutation_counts(mutation_reports)),
+                "criteria_by_status": {
+                    "killed": criterion_status_counts.get("killed", 0),
+                    "unkilled": criterion_status_counts.get("unkilled", 0),
+                    "not_run": criterion_status_counts.get("not_run", 0),
+                },
             },
             "validation_errors": validation_errors or [],
             "acceptance_criteria": [

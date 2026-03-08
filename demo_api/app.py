@@ -10,7 +10,7 @@ def create_app() -> Flask:
 
     @app.get("/health")
     def health():
-        return jsonify({"status": "ok"})
+        return jsonify({"status": "ok", "status_code": 200})
 
     @app.post("/quote")
     def quote():

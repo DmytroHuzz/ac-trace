@@ -11,7 +11,7 @@ def test_healthcheck():
         response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.get_json() == {"status": "ok"}
+    assert response.get_json() == {"status": "ok", "status_code": 200}
 
 
 @ac("AC-3")
