@@ -1,5 +1,7 @@
 # AC Trace
 
+![Demo](demo.png)
+
 `ac-trace` maps acceptance criteria to code and tests, then mutates the code to prove the tests actually catch the breakage.
 
 It is designed to fit an existing Python project, not force the project into a new architecture or workflow. You add a small amount of traceability metadata on top of your current codebase and keep using your current code, tests, and delivery process.
